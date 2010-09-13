@@ -1,0 +1,191 @@
+body{
+	margin: 0;
+	font-size: 12px;
+}
+
+img{
+	border: none;
+}
+
+/*
+clearfix：处理float左右布局。清除浮动
+ */ 
+.clearfix:after{
+	content: ".";
+	display: block;
+	clear: both;
+	visibility: hidden;
+	line-height: 0;
+	height: 0;
+}
+.clearfix{
+	display: inline-block;
+}
+.clearfix{
+	display: block;
+}
+* html .clearfix{
+	height: 1%;
+}
+
+
+#wrap{
+	margin: 0 auto;
+	width: 800px;
+	overflow: hidden;
+}
+h1{
+	font-size: 24px;
+	margin: 0;
+	padding: 20px 20px 10px;
+	background: #F5F7F9;
+	border-top: 3px solid red;
+	color: #137CCD;
+	border-bottom: 1px solid #CAD3DE;
+}
+a{
+	color: #137CCD;
+	text-decoration: none;
+}
+
+a:hover{
+	text-decoration: underline;
+}
+
+.box{
+	width: 400px;
+	margin: 20px auto;
+	padding: 0;
+	border: 1px solid #137CCD;
+	border-top-width: 3px;
+}
+.box-error{
+	border-color: red;
+}
+.box h3{
+	font-size: 14px;
+	margin: 0;
+	padding: 10px;
+	border-bottom: 1px solid #ddd;
+	background: #F0F8FF;
+}
+
+.box-error h3{
+	background: #FFF8DC;
+}
+.box-desc{
+	margin: 10px 0;
+	color: green;
+}
+
+.box-c{
+	padding: 10px;
+}
+
+.form{
+	margin: 0;
+	padding: 0;
+}
+
+.form p{
+	overflow: hidden;
+}
+.form label{
+	float: left;
+	width: 100px;
+	padding: 5px;
+}
+.form .text{
+	float: left;
+	padding: 4px;
+	width: 240px;
+}
+.form .help{
+	padding: 5px;
+	padding-left: 110px;
+	color: gray;
+	float: left;
+}
+.form .actions{
+	text-align: center;
+}
+.form .submit{
+	padding: 5px 20px;
+	background: #FFF8DC;
+	border: 1px solid #FF9900;
+	border-bottom-width: 2px;
+}
+
+.error{
+	color: red;
+}
+
+#footer{
+	border-top: 1px solid #e5e5e5;
+	padding: 0 20px;
+	text-align: right;
+}
+
+#menu{
+	margin-top: 20px;
+	margin-bottom: 100px;
+	padding: 30px 0 50px;
+	width: 90px;
+	border-right: 1px solid #ddd;
+	float: left;
+}
+
+#menu ul{
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+#menu ul li{
+	padding: 0;
+	margin: 0;
+}
+
+#menu ul li a{
+	display: block;
+	padding: 5px 10px;
+}
+
+#menu ul li.current a{
+	background: #FFF8DC;
+}
+
+#content{
+	float: right;
+	width: 700px;
+}
+
+#notice{
+	margin-top: 20px;
+	padding: 10px;
+	text-align: center;
+	background: #FFFAF0;
+	border: 1px solid #FFD700;
+}
+#themes{
+	overflow: hidden;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	margin-top: 20px;
+}
+#themes li{
+	float: left;
+	padding: 10px;
+}
+#themes li h4{
+	margin: 0 0 5px 0;
+}
+
+#themes li.current{
+	background: yellow;
+}
+
+#header-title{
+	margin: 30px 10px 0;
+}
