@@ -1802,8 +1802,8 @@ model("history",{
  * Copyright (c) 2010 Hidden
  * Released under the MIT, BSD, and GPL Licenses.
  *
- * Date: Wed Sep 8 12:54:17 2010 +0800
- * Commit: a5e03b96d9e63ee83e867e6175c479a893207b50
+ * Date: Mon Sep 13 15:48:39 2010 +0800
+ * Commit: 9c4de7aa78cd2b35529d814294ec1dd00aa1d15c
  */
 (function(window,document,undefined){
 
@@ -3582,7 +3582,7 @@ widget("emot", {
 		each(element.firstChild.childNodes, function(i,v){
 			addEvent(v, "click", function(e){
 				removeClass(element, "webim-emot-show");
-				self.trigger('select', this.firstChild.getAttribute('alt'));
+				self.trigger('select', this.firstChild.getAttribute('rel'));
 			});
 		});
         },
@@ -3597,6 +3597,8 @@ widget("emot", {
                     markup.push('" title="');
                     markup.push(title);
                     markup.push('" alt="');
+                    markup.push(v.q[0]);
+                    markup.push('" rel="');
                     markup.push(v.q[0]);
                     markup.push('" /></li>');
                 });
