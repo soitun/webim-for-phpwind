@@ -6,6 +6,6 @@ if(empty($data)){
 	header("HTTP/1.0 400 Bad Request");
 	echo 'Empty post $data';
 }else{
-        $ucdb->query("UPDATE ".im_tname('settings')." SET web='$data' WHERE uid=$user->uid");
+        $db->query("UPDATE ".im_tname('settings')." SET web='$data' WHERE uid=$user->uid");
 	echo 'ok';
 }

@@ -1,6 +1,7 @@
 <?php
 header("Content-type: application/javascript");
 include_once('common.php');
+/*
 $menu = array(
 	array("title" => 'doing',"icon" =>"image/app/doing.gif","link" => "space.php?do=doing"),
 	array("title" => 'album',"icon" =>"image/app/album.gif","link" => "space.php?do=album"),
@@ -21,57 +22,17 @@ if($_SCONFIG['my_status']) {
 		}
 	}
 }
+*/
 $setting = json_encode(setting());
 
 ?>
-//custom
-(function(webim){
-    var path = "";
+//fixbug
+window.constructor.prototype.__defineSetter__("event",function(val){
+	event = val;
+});
+_webim_min = window.location.href.indexOf("webim_debug") != -1 ? "" : ".min";
+_webim_setting = '<?php echo $setting; ?>';
+_webim_disable_chatlink = <?php echo $_IMC['disable_chatlink'] ? "true" : "false" ?>;
+_webim_enable_shortcut = <?php echo $_IMC['enable_shortcut'] ? "true" : "false" ?>;
+document.write('<link href="webim/static/webim.phpwind'+_webim_min+'.css" media="all" type="text/css" rel="stylesheet"/><link href="webim/static/themes/<?php echo $_IMC['theme']; ?>/jquery.ui.theme.css" media="all" type="text/css" rel="stylesheet"/><script src="webim/static/webim.phpwind'+_webim_min+'.js" type="text/javascript"></script><script src="webim/static/i18n/webim-<?php echo $_IMC['local']; ?>.js" type="text/javascript"></script><script src="webim/webim.js" type="text/javascript"></script>');
 
-    var menu = webim.JSON.decode('<?php echo json_encode($menu) ?>');
-	webim.extend(webim.setting.defaults.data, webim.JSON.decode('<?php echo $setting ?>'));
-	var webim = window.webim;
-	webim.defaults.urls = {
-		online:path + "webim/online.php",
-		offline:path + "webim/offline.php",
-		message:path + "webim/message.php",
-		presence:path + "webim/presence.php",
-		refresh:path + "webim/refresh.php",
-		status:path + "webim/status.php"
-	};
-	webim.setting.defaults.url = path + "webim/setting.php";
-	webim.history.defaults.urls = {
-		load: path + "webim/history.php",
-		clear: path + "webim/clear_history.php"
-	};
-    	webim.room.defaults.urls = {
-                    member: path + "webim/members.php",
-                    join: path + "webim/join.php",
-                    leave: path + "webim/leave.php"
-    	};
-	webim.buddy.defaults.url = path + "webim/buddies.php";
-	webim.notification.defaults.url = path + "webim/notifications.php";
-    
-
-	webim.ui.emot.init({"dir": path + "webim/static/images/emot/default"});
-	var soundUrls = {
-		lib: path + "webim/static/assets/sound.swf",
-		msg: path + "webim/static/assets/sound/msg.mp3"
-	};
-	var ui = new webim.ui(document.body, {
-		soundUrls: soundUrls
-	}), im = ui.im;
-	ui.addApp("menu", {"data": menu});
-	//rm shortcut in uchome
-	if(<?php var_export(!!$_IMC['enable_shortcut']); ?>)ui.layout.addShortcut(menu);
-	ui.addApp("buddy");
-	ui.addApp("room");
-	ui.addApp("notification");
-	ui.addApp("setting", {"data": webim.setting.defaults.data});
-	if(<?php echo var_export(!$_IMC['disable_chatlink']) ?>)ui.addApp("chatlink", {
-		off_link_class: /r_option|spacelink/i
-	});
-	ui.render();
-        im.autoOnline() && im.online();
-
-})(webim);

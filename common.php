@@ -1,41 +1,39 @@
 <?php
+require_once(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'global.php');
 require_once('lib/webim.class.php');
-require_once(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'common.php');
-require_once("lib/json.php");
 
-$is_login = false;
-if(empty($_SGLOBAL['supe_uid'])) {
-	$is_login = false;
-} else {
-	$is_login = true;
-	$space = getspace($_SGLOBAL['supe_uid']);
-}
-if(!$is_login)exit('Login at first.');
-$user->uid = $space['uid'];
-$user->id = to_utf8($space['username']);
-$user->nick = to_utf8($space['username']);
-$user->pic_url = avatar($user->uid,"small",true);
-$user->default_pic_url=UC_API.'/images/noavatar_small.gif';
-$user->show = gp('show') ? gp('show') : "available";
-$user->url = "space.php?uid=".$user->uid;
-
-$_SGLOBAL['db']->query("SET NAMES utf8");
-$groups = getfriendgroup();
-foreach($groups as $k => $v){
-	$groups[$k] = to_utf8($v);
+/** is user login */
+$is_login = $GLOBALS['groupid'] != 'guest' && $GLOBALS['groupid'] != '';
+if ( !$is_login ) {
+	exit('Please login at first');
 }
 
-#connect ucenter db.
-include_once(S_ROOT.'./source/class_mysql.php');
-$ucdb = new dbstuff;
-$ucdb->charset = UC_DBCHARSET;
-$ucdb->connect(UC_DBHOST, UC_DBUSER, UC_DBPW, UC_DBNAME);
-$ucdb->query("SET NAMES utf8");
+/** is admin */
+$is_admin = CkInArray($windid, $manager) || $SYSTEM['allowadmincp'];
 
+/** database charset */
+$charset = $charset;
+
+/** database table prefix*/
+$dbpre = $PW;
+
+/** database connection*/
+$db = $db;
+
+/** userinfo*/
+$user = (object)array(
+	'uid' => $winddb['uid'],
+	'id' => to_utf8( $winddb['username'] ),
+	'nick' => to_utf8( $winddb['username'] ),
+	'pic_url' => avatar( $winddb['icon'] ),
+	'show' => gp('show') ? gp('show') : "available",
+	'url' => profile_url( $winddb['uid'] ),
+);
+
+$db->query("SET NAMES utf8");
 
 function nick($sp) {
-	global $_IMC;
-	return (!$_IMC['show_realname']||empty($sp['name'])) ? $sp['username'] : $sp['name'];
+	return $sp['username'];
 }
 
 function ids_array($ids) {
@@ -48,28 +46,31 @@ function ids_except($id, $ids) {
 	return $ids;
 }
 
+function tname($name) {
+	global $dbpre;
+	return $dbpre.$name;
+}
+
 function im_tname($name) {
-	//     return "`webim_".$name."`";
-	return UC_DBTABLEPRE."webim_".$name;
+	global $dbpre;
+	return $dbpre."webim_".$name;
 }
 
 
 function online_buddy(){
-	global $groups, $user, $_SGLOBAL;
+	global $groups, $user, $db;
 	$list = array();
-	$query = $_SGLOBAL['db']->query("SELECT m.uid, m.username, m.name, f.gid 
-		FROM ".tname('friend')." f, ".tname('session')." s, ".tname('space')." m
-		WHERE f.uid='$user->uid' AND f.fuid = s.uid AND m.uid = s.uid
-		ORDER BY f.num DESC, f.dateline DESC");
-	while ($value = $_SGLOBAL['db']->fetch_array($query)){
+	$query = $db->query("SELECT m.uid, m.username, m.icon
+		FROM ".tname('friends')." f, ".tname('members')." m
+		WHERE f.uid='$user->uid' AND f.friendid = m.uid");
+	while ($value = $db->fetch_array($query)){
 		$list[] = (object)array(
 			"uid" => $value['uid'],
 			"id" => $value['username'],
 			"nick" => nick($value),
-			"group" => $groups[$value['gid']],
-			"url" => "home.php?mod=space&uid=".$value['uid'],
-			'default_pic_url' => UC_API.'/images/noavatar_small.gif',
-			"pic_url" => avatar($value['uid'], 'small', true),
+			"group" => 'friend',
+			"url" => profile_url($value['uid']),
+			"pic_url" => avatar($value['icon']),
 		);
 	}
 	return $list;
@@ -77,7 +78,8 @@ function online_buddy(){
 
 
 function complete_status($members){
-	global $_SGLOBAL;
+	return $members;
+	global $db;
 	if(!empty($members)){                
 		$num = count($members);                
 		$ids = array();
@@ -91,13 +93,13 @@ function complete_status($members){
 			}
 		}
 		$ids = implode(",", $ids);
-		$query = $_SGLOBAL['db']-> query($q="SELECT t.uid, t.message FROM " . tname("doing") . " t 
+		$query = $db-> query($q="SELECT t.uid, t.message FROM " . tname("doing") . " t 
 			INNER JOIN (SELECT max(doid) doid 
 			FROM " . tname("doing") . "  
 			WHERE uid IN ($ids)
 			GROUP BY uid) t2 
 			ON t2.doid = t.doid;");
-		while ($value = $_SGLOBAL['db']->fetch_array($query)) {
+		while ($value = $db->fetch_array($query)) {
 			$ob[$value['uid']]->status = $value['message'];
 		}
 	}
@@ -106,7 +108,7 @@ function complete_status($members){
 
 //$names="licangcai,qiukh"
 function buddy($names, $uids = null) {
-	global $_SGLOBAL,$user, $groups;
+	global $db,$user, $groups;
 	$where_name = "";
 	$where_uid = "";
 	if(!$names and !$uids)return array();
@@ -119,59 +121,52 @@ function buddy($names, $uids = null) {
 	}
 	$where_sql = $where_name && $where_uid ? "($where_name OR $where_uid)" : ($where_name ? $where_name : $where_uid);
 	$buddies = array();
-	$query = $_SGLOBAL['db']-> query($q="SELECT m.uid, m.username, m.name, f.gid, f.fuid 
-		FROM " .tname('space')." m 
-		LEFT OUTER JOIN ".tname('friend')." f ON f.uid = '$user->uid' AND m.uid = f.fuid 
+	$query = $db-> query($q="SELECT m.uid, m.username, m.icon, f.friendid fuid 
+		FROM " .tname('members')." m 
+		LEFT OUTER JOIN ".tname('friends')." f ON f.uid = '$user->uid' AND m.uid = f.friendid 
 		WHERE m.uid <> $user->uid AND $where_sql");
-	while ($value = $_SGLOBAL['db']->fetch_array($query)) {
+	while ($value = $db->fetch_array($query)) {
 		if(empty($value['fuid'])) {
 			$group = "stranger";
 		}else {
-			$gid = $value['gid'];
-			$group = (empty($gid) || empty($groups[$gid])) ? "friend" : $groups[$gid];
+			$group = "friend";
 		}
 		$buddies[]=(object)array(
-			'uid'=>$value['uid'],
-			'id'=> $value['username'],
-			'nick'=> nick($value),
-			'pic_url' =>avatar($value['uid'],"small",true),
-			'status'=>'' ,
-			'status_time'=>'',
-			'url'=>'space.php?uid='.$value['uid'],
-			'group'=> $group,
-			'default_pic_url' => UC_API.'/images/noavatar_small.gif');
+			"uid" => $value['uid'],
+			"id" => $value['username'],
+			"nick" => nick($value),
+			"group" => 'friend',
+			"url" => profile_url($value['uid']),
+			"pic_url" => avatar($value['icon']),
+		);
 	}
 	return $buddies;
 }
 
-function rooms() {
-	global $_SGLOBAL,$user;
+function room() {
+	global $db, $user;
 	$rooms = array();
-	$query = $_SGLOBAL['db']->query("SELECT t.tagid, t.membernum, t.tagname, t.pic
-		FROM ".tname('tagspace')." main
-		LEFT JOIN ".tname('mtag')." t ON t.tagid = main.tagid
+	$query = $db->query("SELECT t.id, t.members, t.cname, t.cnimg
+		FROM ".tname('cmembers')." main
+		LEFT JOIN ".tname('colonys')." t ON t.id = main.colonyid
 		WHERE main.uid = '$user->uid'");
-	while ($value = $_SGLOBAL['db']->fetch_array($query)) {
-		$tagid = $value['tagid'];
-		$id = $tagid;
-		$tagname = $value['tagname'];
-		$pic = empty($value['pic']) ? 'image/nologo.jpg' : $value['pic'];
-		$rooms[$id]=(object)array('id'=>$id,
-			'nick'=> $tagname,
+	while ($value = $db->fetch_array($query)) {
+		$pic = empty($value['cnimg']) ? 'images/apps/groupnopic.gif' : $value['cnimg'];
+		$rooms[$id]=(object)array(
+			'id'=>$value['id'],
+			'nick'=> $value['cname'],
 			'pic_url'=>$pic,
-			'status'=>'',
-			'status_time'=>'',
-			'all_count' => $value['membernum'],
-			'url'=>'space.php?do=mtag&tagid='.$tagid,
+			'all_count' => $value['members'],
+			'url'=>"mode.php?m=o&q=group&cyid=$value[id]",
 			'count'=>"");
 	}
 	return $rooms;
 }
 
 function new_message_to_histroy() {
-	global $user, $ucdb;
+	global $user, $db;
 	$id = $user->id;
-	$ucdb->query("UPDATE ".im_tname('histories')." SET send = 1 WHERE `to`='$id' AND send = 0");
+	$db->query("UPDATE ".im_tname('histories')." SET send = 1 WHERE `to`='$id' AND send = 0");
 }
 
 /**
@@ -187,23 +182,23 @@ function new_message_to_histroy() {
  */
 
 function history($type, $id){
-	global $user, $ucdb;
+	global $user, $db;
 	$user_id = $user->id;
 	$list = array();
 	if($type == "unicast"){
-		$query = $ucdb->query("SELECT * FROM ".im_tname('histories')." 
+		$query = $db->query("SELECT * FROM ".im_tname('histories')." 
 			WHERE `type` = 'unicast' 
 			AND ((`to`='$id' AND `from`='$user_id' AND `fromdel` != 1) 
 			OR (`send` = 1 AND `from`='$id' AND `to`='$user_id' AND `todel` != 1))  
 			ORDER BY timestamp DESC LIMIT 30");
-		while ($value = $ucdb->fetch_array($query)){
+		while ($value = $db->fetch_array($query)){
 			array_unshift($list, log_item($value));
 		}
 	}elseif($type == "multicast"){
-		$query = $ucdb->query("SELECT * FROM ".im_tname('histories')." 
+		$query = $db->query("SELECT * FROM ".im_tname('histories')." 
 			WHERE `to`='$id' AND `type`='multicast' AND send = 1 
 			ORDER BY timestamp DESC LIMIT 30");
-		while ($value = $ucdb->fetch_array($query)){
+		while ($value = $db->fetch_array($query)){
 			array_unshift($list, log_item($value));
 		}
 	}else{
@@ -217,13 +212,13 @@ function history($type, $id){
  */
 
 function new_message() {
-	global $user, $ucdb;
+	global $user, $db;
 	$id = $user->id;
 	$list = array();
-	$query = $ucdb->query("SELECT * FROM ".im_tname('histories')." 
+	$query = $db->query("SELECT * FROM ".im_tname('histories')." 
 		WHERE `to`='$id' and send = 0 
 		ORDER BY timestamp DESC LIMIT 100");
-	while ($value = $ucdb->fetch_array($query)){
+	while ($value = $db->fetch_array($query)){
 		array_unshift($list, log_item($value));
 	}
 	return $list;
@@ -242,34 +237,49 @@ function log_item($value){
 }
 
 function setting() {
-	global $_SGLOBAL,$user, $ucdb;
-	if(!empty($_SGLOBAL['supe_uid'])) {
-		$setting  = $ucdb->fetch_array($ucdb->query("SELECT * FROM ".im_tname('settings')." WHERE uid='$_SGLOBAL[supe_uid]'"));
+	global $user, $db;
+	if(!empty($user->uid)) {
+		$setting  = $db->fetch_array($db->query("SELECT * FROM ".im_tname('settings')." WHERE uid='$user->uid'"));
 		if(empty($setting)) {
 			$setting = array('uid'=> $user->uid,'web'=>"");
-			$ucdb->query("INSERT INTO ".im_tname('settings')." (uid,web) VALUES ($_SGLOBAL[supe_uid],'')");
+			$db->query("INSERT INTO ".im_tname('settings')." (uid,web) VALUES ($user->uid,'')");
 		}
 		$setting = $setting["web"];
 	}
 	return json_decode(empty($setting) ? "{}" : $setting);
 }
 
-function to_utf8($s) {
-	global $_SC;
-	if($_SC['charset'] == 'utf-8') {
+function to_utf8( $s ) {
+	global $charset;
+	if($charset == 'utf-8') {
 		return $s;
 	} else {
-		return  _iconv($_SC['charset'],'utf-8',$s);
+		return  _iconv($charset,'utf-8',$s);
 	}
 }
 
-function from_utf8($s) {
-	global $_SC;
-	if($_SC['charset'] == 'utf-8') {
+function from_utf8( $s ) {
+	global $charset;
+	if($charset == 'utf-8') {
 		return $s;
 	} else {
-		return  _iconv('utf-8',$_SC['charset'],$s);
+		return  _iconv('utf-8',$charset,$s);
 	}
+}
+
+function avatar ($icon) {
+	require_once(R_P.'require/showimg.php');
+	$pic_url = showfacedesign($icon, true);
+	return $pic_url[0];
+}
+
+function profile_url( $uid ) {
+	return "u.php?action=show&uid=$uid";
+}
+
+function firend_group( $id ) {
+
+	return 'friend';
 }
 
 ?>

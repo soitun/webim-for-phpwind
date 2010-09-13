@@ -1,10 +1,10 @@
 <?php
-include_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'install'.DIRECTORY_SEPARATOR.'include.php');
-include_once(IM_ROOT.DIRECTORY_SEPARATOR.'common.php');
-if(!ckfounder($user->uid)){
+include_once(dirname(__FILE__).'/common.php');
+if(!$is_admin){
 	//is not admin
 	exit('Please login as admin.');
 }
+include_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'install'.DIRECTORY_SEPARATOR.'include.php');
 $msg = "";
 $success = false;
 if(!empty($unwritable_paths)){
@@ -56,11 +56,11 @@ EOF;
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title>WebIM For UChome卸载</title>
+		<title>WebIM For PHPWind卸载</title>
 		<link href="base.css" media="all" type="text/css" rel="stylesheet" />
 	</head>
 	<body>
-		<h1>WebIM For UChome卸载</h1>
+		<h1>WebIM For PHPWind卸载</h1>
 		<div id="wrap">
 			<?php echo $msg; ?>
 		</div>

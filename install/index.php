@@ -1,10 +1,9 @@
 <?php
-include_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'install'.DIRECTORY_SEPARATOR.'include.php');
-include_once(IM_ROOT.DIRECTORY_SEPARATOR.'common.php');
-if(!ckfounder($user->uid)){
-	//is not admin
-	exit('Please login as admin.');
-}
+include_once(dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'common.php');
+//is not admin
+if ( !$is_admin ) exit('Please login as admin.');
+
+include_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'include.php');
 $msg = "";
 $success = false;
 if(!empty($unwritable_paths)){
@@ -61,19 +60,19 @@ EOF;
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title>WebIM For UChome安装</title>
-		<link href="base.css" media="all" type="text/css" rel="stylesheet" />
+		<title>WebIM For PHPWind安装</title>
+		<link href="../base.css" media="all" type="text/css" rel="stylesheet" />
 	</head>
 	<body>
-		<h1>WebIM For UChome安装</h1>
+		<h1>WebIM For PHPWind安装</h1>
 		<div id="wrap">
 			<?php echo $msg; ?>
 		</div>
 		<div id="footer"><p><a href="http://www.webim20.cn">© 2010 NextIM</a></p></div>
 		<?php if($success): ?>
-		<script type="text/javascript">
-			setTimeout(function(){window.location.href = "index.php";}, 2000);
-		</script>
+<script type="text/javascript">
+setTimeout(function(){window.location.href = "../index.php";}, 2000);
+</script>
 		<?php endif; ?>
 	</body>
 </html>

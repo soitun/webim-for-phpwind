@@ -55,7 +55,7 @@ if(!empty($buddies_without_info) || !empty($strangers)){
 }
 
 if(!$_IMC['disable_room']){
-	$rooms = rooms();
+	$rooms = room();
 	$setting = setting();
 	$blocked_rooms = $setting && is_array($setting->blocked_rooms) ? $setting->blocked_rooms : array();
 	//Find im_rooms 

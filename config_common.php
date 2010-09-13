@@ -1,12 +1,12 @@
 <?php
 
 include_once('common.php');
-if(!ckfounder($user->uid)){
+if(!$is_admin){
 	//is not admin
 	exit('Please login as admin.');
 }
 if(!isset($_IMC)){
-	header("Location: install.php");
+	header("Location: install/index.php");
 	exit();
 }
 define('IM_ROOT', dirname(__FILE__));

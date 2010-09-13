@@ -14,7 +14,7 @@ if(empty($ticket) || empty($type) || empty($to) || empty($body)) {
 	$send = $offline == "true" || $offline == "1" ? 0 : 1;
 	$columns = "`send`,`to`,`from`,`nick`,`style`,`body`,`timestamp`,`type`";
 	$values_from = "'$send','$to','$user->id','$user->nick','$style','".$body."','$time','$type'";
-	$ucdb->query("INSERT INTO ".im_tname('histories')." ($columns) VALUES ($values_from)");
+	$db->query("INSERT INTO ".im_tname('histories')." ($columns) VALUES ($values_from)");
 	if($send == 1) {
 		require 'config.php';
 		$im = new WebIM($user, $ticket, $_IMC['domain'], $_IMC['apikey'], $_IMC['host'], $_IMC['port']);

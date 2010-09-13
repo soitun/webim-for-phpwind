@@ -20,11 +20,11 @@ $html .= '</ul>';
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title>WebIM For UChome</title>
+		<title>WebIM For PHPWind</title>
 		<link href="base.css" media="all" type="text/css" rel="stylesheet" />
 	</head>
 	<body>
-		<h1>WebIM For UChome</h1>
+		<h1>WebIM For PHPWind</h1>
 		<div id="wrap">
 			<div id="menu">
 				<ul>
