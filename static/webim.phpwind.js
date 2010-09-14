@@ -5,8 +5,8 @@
  * Copyright (c) 2010 Hidden
  * Released under the MIT, BSD, and GPL Licenses.
  *
- * Date: Wed Sep 8 12:52:56 2010 +0800
- * Commit: 615d6d3228182b62b6f21a3bfddd13996a6f375c
+ * Date: Thu Sep 9 22:27:38 2010 +0800
+ * Commit: 51535f04965a06365a2d6b802c83de3a5bfafa65
  */
 (function(window, document, undefined){
 
@@ -545,7 +545,7 @@ function ajax( s ) {
 //};
 function emptyFunction(){}
 function jsonp(s){
-	s = extend({}, s);
+	s = extend({ timeout : 5000 }, s);
 	var data = "" + param(s.data),
 	callbackContext = s.context || window,
 	jsonp = "jsonp" + jsc++,
@@ -1802,8 +1802,8 @@ model("history",{
  * Copyright (c) 2010 Hidden
  * Released under the MIT, BSD, and GPL Licenses.
  *
- * Date: Mon Sep 13 15:48:39 2010 +0800
- * Commit: 9c4de7aa78cd2b35529d814294ec1dd00aa1d15c
+ * Date: Tue Sep 14 14:33:13 2010 +0800
+ * Commit: 5bceaad58907cfbe4228919e486f76d1d358857e
  */
 (function(window,document,undefined){
 
