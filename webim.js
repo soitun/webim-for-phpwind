@@ -43,7 +43,7 @@
 	ui.addApp("notification");
 	ui.addApp("setting", {"data": webim.setting.defaults.data});
 	if(!_webim_disable_chatlink)ui.addApp("chatlink", {
-		link_href: [/u.php\?action=show&uid=(\d+)$/i, /u.php\?uid=(\d+)$/i, /mode.php\?m=o&space=1&q=user&u=(\d+)/],
+		link_href: [/u.php\?action=show&uid=(\d+)$/i, /u.php\?uid=(\d+)$/i, /mode.php\?m=o&space=1&q=user&u=(\d+)/, /mode.php\?m=o&q=user&uid=(\d+)/i, /mode.php\?m=o&q=user&u=(\d+)/i],
 		space_href: [],
 		off_link_class: /gray/
 	});
