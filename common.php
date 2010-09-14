@@ -151,7 +151,7 @@ function room() {
 		LEFT JOIN ".tname('colonys')." t ON t.id = main.colonyid
 		WHERE main.uid = '$user->uid'");
 	while ($value = $db->fetch_array($query)) {
-		$pic = empty($value['cnimg']) ? 'images/apps/groupnopic.gif' : $value['cnimg'];
+		$pic = empty($value['cnimg']) ? 'webim/static/images/group.gif' : $value['cnimg'];
 		$rooms[$id]=(object)array(
 			'id'=>$value['id'],
 			'nick'=> $value['cname'],
