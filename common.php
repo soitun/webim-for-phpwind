@@ -5,7 +5,7 @@ require_once('lib/webim.class.php');
 /** is user login */
 $is_login = $GLOBALS['groupid'] != 'guest' && $GLOBALS['groupid'] != '';
 if ( !$is_login ) {
-	exit('Please login at first');
+	exit('"Please login at first"');
 }
 
 /** is admin */
