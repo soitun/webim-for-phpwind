@@ -37,7 +37,7 @@
 	}), im = ui.im;
 	ui.addApp("menu", {"data": menu});
 	//rm shortcut in uchome
-	if(!_webim_enable_shortcut)ui.layout.addShortcut(menu);
+	//if(!_webim_enable_shortcut)ui.layout.addShortcut(menu);
 	ui.addApp("buddy");
 	ui.addApp("room");
 	ui.addApp("notification");
