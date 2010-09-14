@@ -26,10 +26,6 @@ if($_SCONFIG['my_status']) {
 $setting = json_encode(setting());
 
 ?>
-//fixbug
-window.constructor.prototype.__defineSetter__("event",function(val){
-	event = val;
-});
 _webim_min = window.location.href.indexOf("webim_debug") != -1 ? "" : ".min";
 _webim_setting = '<?php echo $setting; ?>';
 _webim_disable_chatlink = <?php echo $_IMC['disable_chatlink'] ? "true" : "false" ?>;
