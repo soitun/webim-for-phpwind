@@ -48,6 +48,17 @@ if ( is_dir( $template_dir ) ){
 	}
 }
 
+/*pw 7.0*/
+$template_dir = PRODUCT_ROOT.DIRECTORY_SEPARATOR.'mode/area/template';
+if ( is_dir( $template_dir ) ){
+	$f = $template_dir.DIRECTORY_SEPARATOR.'footer.htm';
+	if(file_exists($f)){
+		$templates[] = $template_dir;
+		$need_check_paths[] = $f;
+	}
+}
+
+
 $unwritable_paths = select_unwritable_path($need_check_paths);
 $subpathlen = strlen(dirname(PRODUCT_ROOT)) + 1;
 
