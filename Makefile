@@ -8,6 +8,7 @@ VERSION= 1.0beta
 PRODUCT_NAME= PHPWind
 CACHE_DIR= ${PRIFIX}/webim
 REL_FILE = ${DIST_DIR}/WebIM_For_${PRODUCT_NAME}-${VERSION}.zip
+LATE_REL_FILE = ${DIST_DIR}/WebIM_For_${PRODUCT_NAME}-latest.zip
 REPLACE_VER= sed s/@VERSION/${VERSION}/
 
 SRC_FILES = ${SRC_DIR}/*.php \
@@ -23,6 +24,7 @@ all: ${REL_FILE}
 ${REL_FILE}: ${DIST_DIR} ${CACHE_DIR}
 	@@echo "Zip ${REL_FILE}"
 	@@zip -r -q ${REL_FILE} ${CACHE_DIR}
+	@@cp ${REL_FILE} ${LATE_REL_FILE}
 
 ${CACHE_DIR}: ${LIB_DIR}/webim.class.php
 	@@echo "Create cache directory"
