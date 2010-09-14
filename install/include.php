@@ -39,6 +39,19 @@ foreach(scan_subdir($template_dir) as $k => $v){
 		$need_check_paths[] = $f;
 	}
 }
+
+$template_dir = PRODUCT_ROOT.'/u/themes';
+if (is_dir ($template_dir) ){
+	foreach(scan_subdir($template_dir) as $k => $v){
+		$d = $template_dir.DIRECTORY_SEPARATOR.$v;
+		$f = $d.DIRECTORY_SEPARATOR.'footer.htm';
+		if(file_exists($f)){
+			$templates[] = $d;
+			$need_check_paths[] = $f;
+		}
+	}
+}
+
 $template_dir = PRODUCT_ROOT.DIRECTORY_SEPARATOR.'mode/o/template';
 if ( is_dir( $template_dir ) ){
 	$f = $template_dir.DIRECTORY_SEPARATOR.'footer.htm';
