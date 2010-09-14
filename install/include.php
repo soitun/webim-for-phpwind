@@ -15,7 +15,7 @@ $need_check_paths[] = $product_config_file;
 $need_check_paths[] = $cache_dir;
 $need_check_paths[] = $db_file;
 $need_check_paths[] = $un_db_file;
-$need_check_paths[] = $template_file;
+//$need_check_paths[] = $template_file;
 
 include($product_config_file);
 
@@ -30,7 +30,7 @@ if(file_exists($im_config_file)){
 
 $templates = array();
 $template_dir = PRODUCT_ROOT.DIRECTORY_SEPARATOR.'template';
-$tmp_name = basename($template_file);
+//$tmp_name = basename($template_file);
 foreach(scan_subdir($template_dir) as $k => $v){
 	$d = $template_dir.DIRECTORY_SEPARATOR.$v;
 	$f = $d.DIRECTORY_SEPARATOR.'footer.htm';
