@@ -1,4 +1,5 @@
 <?php
+die();
 //$action = !empty($action) ? $action : (isset($uid) || !empty($pmid) ? 'view' : '');
 //$systemnewpm = $pmstatus['newpm'] - $pmstatus['newprivatepm'];
 //$multipage = multi($ucdata['count'], 10, 1, 'pm.php?filter='.$filter);
