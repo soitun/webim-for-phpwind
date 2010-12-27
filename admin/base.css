@@ -155,12 +155,16 @@ a:hover{
 	background: #FFF8DC;
 }
 
+#menu ul li.sep{
+	margin-top: 50px;
+}
+
 #content{
 	float: right;
 	width: 700px;
 }
 
-#notice{
+#notice, .notice{
 	margin-top: 20px;
 	padding: 10px;
 	text-align: center;
@@ -188,4 +192,10 @@ a:hover{
 
 #header-title{
 	margin: 30px 10px 0;
+}
+
+#content pre{
+	border: 1px solid #D8D8E5;
+	background: #E5E8FF;
+	padding: 6px 10px;
 }

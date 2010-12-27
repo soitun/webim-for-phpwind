@@ -1,34 +1,48 @@
 <?php
-header("Content-type: application/javascript");
-include_once('common.php');
-/*
-$menu = array(
-	array("title" => 'doing',"icon" =>"image/app/doing.gif","link" => "space.php?do=doing"),
-	array("title" => 'album',"icon" =>"image/app/album.gif","link" => "space.php?do=album"),
-	array("title" => 'blog',"icon" =>"image/app/blog.gif","link" => "space.php?do=blog"),
-	array("title" => 'thread',"icon" =>"image/app/mtag.gif","link" => "space.php?do=thread"),
-	array("title" => 'share',"icon" =>"image/app/share.gif","link" => "space.php?do=share")
-);
 
-if($_SCONFIG['my_status']) {
-	if(is_array($_SGLOBAL['userapp'])) { 
-		foreach($_SGLOBAL['userapp'] as $value) { 
-			$menu[] = array("title" => to_utf8($value['appname']), "icon" =>"http://appicon.manyou.com/icons/".$value['appid'],"link" => "userapp.php?id=".$value['appid']);
-		}
-	}
-	if(is_array($_SGLOBAL['my_menu'])) { 
-		foreach($_SGLOBAL['my_menu'] as $value) { 
-			$menu[] = array("title" => to_utf8($value['appname']), "icon" =>"http://appicon.manyou.com/icons/".$value['appid'],"link" => "userapp.php?id=".$value['appid']);
-		}
-	}
+include_once('common.php');
+
+header("Content-type: application/javascript");
+/** set no cache in IE */
+header("Cache-Control: no-cache");
+
+$webim_jsonp = isset( $_GET['remote'] ) || webim_is_remote();
+$webim_path = webim_urlpath();
+
+if ( !$im_is_login && !$_IMC['enable_login'] ) {
+	exit('"Please login at first."');
 }
-*/
-$setting = json_encode(setting());
+
+
+if ( $im_is_login ) {
+	$setting = json_encode( webim_get_settings() );
+	$imuser->show = 'unavailable';
+	$imuser = json_encode( $imuser );
+} else {
+	$setting = "";
+	$imuser = "";
+}
+if ( !$_IMC['disable_menu'] )
+	$menu = json_encode( webim_get_menu() );
 
 ?>
-_webim_min = window.location.href.indexOf("webim_debug") != -1 ? "" : ".min";
-_webim_setting = '<?php echo $setting; ?>';
-_webim_disable_chatlink = <?php echo $_IMC['disable_chatlink'] ? "true" : "false" ?>;
-_webim_enable_shortcut = <?php echo $_IMC['enable_shortcut'] ? "true" : "false" ?>;
-document.write('<link href="webim/static/webim.phpwind'+_webim_min+'.css" media="all" type="text/css" rel="stylesheet"/><link href="webim/static/themes/<?php echo $_IMC['theme']; ?>/jquery.ui.theme.css" media="all" type="text/css" rel="stylesheet"/><script src="webim/static/webim.phpwind'+_webim_min+'.js" type="text/javascript"></script><script src="webim/static/i18n/webim-<?php echo $_IMC['local']; ?>.js" type="text/javascript"></script><script src="webim/webim.js" type="text/javascript"></script>');
-
+var _IMC = {
+production_name: '<?php echo WEBIM_PRODUCT_NAME ?>',
+version: '<?php echo $_IMC['version']; ?>',
+path: '<?php echo $webim_path; ?>',
+is_login: '<?php echo $im_is_login ? "1" : "" ?>',
+login_options: <?php echo json_encode( array("notice" => "使用phpwind帐号登录", "questions" => null) ); ?>,
+user: <?php echo $imuser ? $imuser : '""'; ?>,
+setting: <?php echo $setting ? $setting : '""'; ?>,
+menu: <?php echo !$_IMC['disable_menu'] ? $menu : '""'; ?>,
+disable_chatlink: '<?php echo $_IMC['disable_chatlink'] ? "1" : "" ?>',
+enable_shortcut: '<?php echo $_IMC['enable_shortcut'] ? "1" : "" ?>',
+disable_menu: '<?php echo $_IMC['disable_menu'] ? "1" : "" ?>',
+theme: '<?php echo $_IMC['theme']; ?>',
+local: '<?php echo $_IMC['local']; ?>',
+jsonp: '<?php echo $webim_jsonp ? "1" : "" ?>',
+min: window.location.href.indexOf("webim_debug") != -1 ? "" : ".min"
+};
+_IMC.script = window.webim ? '' : ('<link href="' + _IMC.path + 'static/webim.' + _IMC.production_name + _IMC.min + '.css?' + _IMC.version + '" media="all" type="text/css" rel="stylesheet"/><link href="' + _IMC.path + 'static/themes/' + _IMC.theme + '/jquery.ui.theme.css?' + _IMC.version + '" media="all" type="text/css" rel="stylesheet"/><script src="' + _IMC.path + 'static/webim.' + _IMC.production_name + _IMC.min + '.js?' + _IMC.version + '" type="text/javascript"></script><script src="' + _IMC.path + 'static/i18n/webim-' + _IMC.local + '.js?' + _IMC.version + '" type="text/javascript"></script>');
+_IMC.script += '<script src="' + _IMC.path + 'webim.js?' + _IMC.version + '" type="text/javascript"></script>';
+document.write( _IMC.script );
