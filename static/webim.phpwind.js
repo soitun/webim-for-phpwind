@@ -1,12 +1,12 @@
 /*!
- * Webim v1.0.1
+ * Webim v1.0.2
  * http://www.webim20.cn/
  *
  * Copyright (c) 2010 Hidden
  * Released under the MIT, BSD, and GPL Licenses.
  *
- * Date: Thu Sep 9 22:27:38 2010 +0800
- * Commit: 51535f04965a06365a2d6b802c83de3a5bfafa65
+ * Date: Tue Sep 28 19:32:15 2010 +0800
+ * Commit: 0b2752a7bde44a89ba504019f3aa3ac5a75c5f43
  */
 (function(window, document, undefined){
 
@@ -243,6 +243,7 @@ var objectExtend = {
 */
 
 // key/values into a query string
+var r20 = /%20/g;
 function param( a ) {
 	var s = [];
 	if ( typeof a == "object"){
@@ -258,7 +259,6 @@ function param( a ) {
 var jsc = now(),
 	rquery = /\?/,
 	rts = /(\?|&)_=.*?(&|$)/,
-	r20 = /%20/g,
 	ajaxSettings = {
 		url: location.href,
 		global: true,
@@ -536,70 +536,247 @@ function ajax( s ) {
 	return xhr;
 }
 
-//var jsonpSettings = {
-//	url: location.href,
-//	timeout: 30,
-//	jsonp:"callback",
-//	success:function(data){},
-//	error:function(s){}
-//};
-function emptyFunction(){}
+/**
+* 
+* No dependencies.
+*
+* Safari and chrome not support async opiton, it aways async.
+*
+* Reference:
+*
+* http://forum.jquery.com/topic/scriptcommunicator-for-ajax-script-jsonp-loading
+* http://d-tune.javaeye.com/blog/506074
+*
+* Opera: 10.01
+* 	run sync.
+* 	can't load sync.
+* 	trigger onload when load js file with content.
+* 	trigger error when src is invalid.
+* 	don't trigger any event when src is valid and load error.
+* 	don't trigger any event when js file is blank.
+*
+* Chrome: 6.0
+* 	run async when use createElement.
+* 	run sync when use document.writeln.
+* 	prefect onload and onerror event.
+*
+* Safari: 5.0
+* 	run async.
+* 	prefect onload and onerror event.
+* 
+* Firefox: 3.6
+* 	run sync.
+* 	support async by set script.async = true.
+* 	prefect onload and onerror event.
+*
+*/
+var jsonpSettings = {
+	url: location.href,
+	timeout: 5000,
+	jsonp:"callback",
+	async: false
+};
+
+var jsonpSupport = window.jsonpSupport = {
+	//Firefox 3.6 and chrome 6 support script async attribute.
+	async: typeof( document.createElement("script").async ) == "boolean",
+	//Opera may not trigger events when script load. 
+	events: false,
+	// Webkit run script async when create script by createElement.
+	defaultAsync: false,
+	// IE can async load script in fragment.
+	fragmentProxy: false
+};
+(function(){
+	var ua = navigator.userAgent.toLowerCase();
+	jsonpSupport.events = !/(opera)(?:.*version)?[ \/]([\w.]+)/.exec( ua );
+	jsonpSupport.defaultAsync = !!/(webkit)[ \/]([\w.]+)/.exec( ua );
+/*
+var head = document.getElementsByTagName("head")[0] || document.createElement,
+script = document.createElement("script"),
+script2 = document.createElement("script"),
+text = "window.jsonpSupport.defaultAsync = false;";
+script.src = "javascript:false";
+script.onload = function(e) {
+jsonpSupport.defaultAsync = true;
+jsonpSupport.events = true;
+};                
+
+script.onerror = function(e) {
+jsonpSupport.defaultAsync = true;
+jsonpSupport.events = true;
+};               
+script.onreadystatechange = function() {
+// ie defaultAsync = true
+jsonpSupport.events = true;
+};
+head.appendChild( script );
+try{
+script2.appendChild( document.createTextNode( text ) );
+} catch( e ){
+script2.text = text;
+}
+head.appendChild( script2 );
+setTimeout(function(){
+script.onload = script.onerror = script.onreadystatechange = null;
+head.removeChild( script );
+head.removeChild( script2 );
+head = script = script2 = null;
+}, 1000);
+*/
+	//Check fragment proxy
+	var frag = document.createDocumentFragment(),
+	script3 = document.createElement('script');
+	text = "window.jsonpSupport.fragmentProxy = true";
+	try{
+		script3.appendChild( document.createTextNode( text ) );
+	} catch( e ){
+		script3.text = text;
+	}
+	frag.appendChild( script3 );
+	frag = script3 = null;
+})();
+
+//setTimeout(function(){
+//alert( JSON.encode( jsonpSupport ) );
+//alert( !jsonpSupport.fragmentProxy && !jsonpSupport.defaultAsync && !jsonpSupport.async );
+//}, 300);
+
 function jsonp(s){
-	s = extend({ timeout : 5000 }, s);
-	var data = "" + param(s.data),
+	s = extend({}, jsonpSettings, s);
+	var data = "",
+	r20 = /%20/g,
 	callbackContext = s.context || window,
 	jsonp = "jsonp" + jsc++,
-	head = document.getElementsByTagName("head")[0] || document.documentElement,
-	script = document.createElement("script");
-	data = (data ? (data + "&") : "") + (s.jsonp || "callback") + "=" + jsonp;
-	s.url += (rquery.test( s.url ) ? "&" : "?") + data;
-	script.src = s.url;
-	if ( s.scriptCharset ) {
-		script.charset = s.scriptCharset;
+	jsonpError = jsonp + "error",
+	script,
+	errorScript,
+	win = window,
+	head,
+	proxy,
+	inIframe = s.async && !jsonpSupport.fragmentProxy && !jsonpSupport.defaultAsync && !jsonpSupport.async;
+	if ( typeof s.data == "object" ) {
+		var ar = [];
+		for (var key in s.data) {
+			ar[ ar.length ] = encodeURIComponent(key) + '=' + encodeURIComponent(s.data[key]);
+		}
+		// Serialize data
+		data = data + ar.join("&").replace(r20, "+");
+	} else {
+		data = data + s.data;
 	}
+	data = (data ? (data + "&") : "") + (s.jsonp || "callback") + "=" + (inIframe ? "parent." : "" ) + jsonp;
+	s.url += (/\?/.test( s.url ) ? "&" : "?") + data;
+
 	// Handle Script loading
 	var done = false;
-	window[ jsonp ] = function(tmp){
+	window[ jsonp ] = function( tmp ) {
 		s.success && s.success.call( callbackContext, tmp, "success" );
 		destroy();
 	};
-	// Attach handlers for all browsers
-	script.onload = script.onreadystatechange = function(){
-		if(!done && (!this.readyState || this.readyState === "loaded" || this.readyState === "complete")){
-			//error
-			error("error");
+
+	//Handle script error callback, the script will run once.
+	window[ jsonpError ] = function(tmp){
+		if ( !done ) {
+			error( "error" );
 			destroy();
 		}
 	};
+
+	// Handle timeout
 	if ( s.timeout > 0 ) {
-		setTimeout(function(){
-			if (!done){
-				error("timeout");
+		setTimeout( function() {
+			if ( !done ){
+				error( "timeout" );
 				destroy();
 				// The script may be loading.
-				window[ jsonp ] = emptyFunction;
+				window[ jsonp ] = jsonpEmptyFunction;
 			}
-		}, s.timeout);
+		}, s.timeout );
 	}
-	// Use insertBefore instead of appendChild  to circumvent an IE6 bug.
-	head.insertBefore( script, head.firstChild );
-	// We handle everything using the script element injection
+	if( s.async && !jsonpSupport.defaultAsync && jsonpSupport.fragmentProxy ) {
+		proxy = document.createDocumentFragment();
+		head = proxy;
+		//proxy[ jsonp ] = window[ jsonp ];
+		//proxy.appendChild( script );
+	}
+	if ( inIframe ) {
+		// Opera need url path in iframe
+		var location = window.location;
+		if( s.url.slice(0, 1) == "/" ) {
+			s.url = location.protocol + "//" + location.host + (location.port ? (":" + location.port) : "" ) + s.url;
+		}
+		else if( !/^https?:\/\//i.test( s.url ) ){
+			var href = location.href,
+		ex = /([^?#]+)\//.exec( href );
+		s.url = ( ex ? ex[1] : href ) + "/" + s.url;
+		}
+		proxy = document.createElement( "iframe" );
+		proxy.style.position = "absolute";
+		proxy.style.left = "-100px";
+		proxy.style.top = "-100px";
+		proxy.style.height = "1px";
+		proxy.style.width = "1px";
+		proxy.style.visibility = "hidden";
+		document.body.appendChild( proxy );
+		win = proxy.contentWindow;
+	}
+	inIframe ? setTimeout( function() { create() }, 0 ) : create();
 	return undefined;
+	function create() {
+		// We handle everything using the script element injection
+		var doc = win.document;
+		head = head || doc.getElementsByTagName("head")[0] || doc.documentElement;
+		script = doc.createElement("script");
+		script.src = s.url;
+		if ( jsonpSupport.async ) {
+			script.async = s.async;
+		}
+		if ( s.scriptCharset ) {
+			script.charset = s.scriptCharset;
+		}
+		// Attach handlers for all browsers
+		script.onload = script.onerror = script.onreadystatechange = function(e){
+			if(!done && (!this.readyState || this.readyState === "loaded" || this.readyState === "complete")){
+				//error
+				error("error");
+				destroy();
+			}
+		};
+		// Use insertBefore instead of appendChild  to circumvent an IE6 bug.
+		head.insertBefore( script, head.firstChild );
+
+		// Call error script When the script has not events and run sync.
+		if ( !jsonpSupport.defaultAsync && !jsonpSupport.events ) {
+			var sc = doc.createElement("script");
+			var text = "try{" + ( inIframe ? "parent." : "" ) + jsonpError + "()}catch(e){};";
+			sc.appendChild( document.createTextNode( text ) );
+			head.insertBefore( sc, head.firstChild );
+			//head.removeChild( sc );
+			head = sc = null;
+		}
+	}
+
 	function destroy(){
 		done = true;
 		// Garbage collect
 		window[ jsonp ] = undefined;
 		try{ delete window[ jsonp ]; } catch(e){}
+		window[ jsonpError ] = undefined;
+		try{ delete window[ jsonpError ]; } catch(e){}
 		// Handle memory leak in IE
 		script.onload = script.onreadystatechange = null;
-		//if ( head ) {
-		if ( head && script.parentNode ) {
-			head.removeChild( script );
-		}
+		script.parentNode && script.parentNode.removeChild( script );
+		proxy && proxy.parentNode && proxy.parentNode.removeChild( proxy );
+		script = proxy = head = null;
 	}
-	function error(status){
+
+	function error( status ) {
 		s.error && s.error.call( callbackContext, status );
 	}
+}
+
+function jsonpEmptyFunction() {
 }
 var JSON = (function(){
 	var chars = {'\b': '\\b', '\t': '\\t', '\n': '\\n', '\f': '\\f', '\r': '\\r', '"' : '\\"', '\\': '\\\\'};
@@ -1045,13 +1222,13 @@ extend(webim.prototype, objectExtend,{
 			self.trigger("message",[n_msg]);
 		}
 	},
-	_stop: function(msg){
+	_stop: function( type, msg ){
 		var self = this;
 		window.onbeforeunload = self._unloadFun;
 		self.data.user.presence = "offline";
 		self.data.user.show = "unavailable";
 		self.buddy.clear();
-		self.trigger("stop", msg);
+		self.trigger("stop", [type, msg] );
 	},
 	autoOnline: function(){
 		return !this.status.get("o");
@@ -1062,9 +1239,9 @@ extend(webim.prototype, objectExtend,{
 		}).bind("data",function(data){
 			self.handle(data);
 		}).bind("error",function(data){
-			self._stop("connect error");
+			self._stop("connect", "Connect Error");
 		}).bind("close",function(data){
-			self._stop("disconnect");
+			self._stop("connect", "Disconnect");
 		});
 		self.bind("message", function(data){
 			var online_buddies = [], l = data.length, uid = self.data.user.id, v, id, type;
@@ -1170,9 +1347,11 @@ extend(webim.prototype, objectExtend,{
 			dataType: "json",
 			data: params,
 			url: self.options.urls.online,
-			success: function(data){
-				if(!data || !data.user || !data.connection){
-					self._stop("online error");
+			success: function( data ){
+				if( !data ){
+					self._stop( "online", "Not Found" );
+				}else if( !data.success ) {
+					self._stop( "online", data.error_msg );
 				}else{
 					data.user = extend(self.data.user, data.user, {presence: "online"});
 					self.data = data;
@@ -1180,7 +1359,7 @@ extend(webim.prototype, objectExtend,{
 				}
 			},
 			error: function(data){
-				self._stop("online error");
+				self._stop( "online", "Not Found" );
 			}
 		});
 	},
@@ -1188,7 +1367,7 @@ extend(webim.prototype, objectExtend,{
 		var self = this, data = self.data;
 		self.status.set("o", true);
 		self.connection.close();
-		self._stop("offline");
+		self._stop("offline", "offline");
 		self.request({
 			type: 'post',
 			url: self.options.urls.offline,
@@ -1234,7 +1413,7 @@ function model(name, defaults, proto){
 window.webim = webim;
 
 extend(webim,{
-	version:"1.0.1",
+	version:"1.0.2",
 	defaults:{
 		urls:{
 			online: "webim/online",
@@ -1260,6 +1439,7 @@ extend(webim,{
 	map: map,
 	JSON: JSON,
 	ajax: ajax,
+	jsonp: jsonp,
 	comet: comet,
 	model: model,
 	objectExtend: objectExtend
@@ -1461,6 +1641,7 @@ model("buddy", {
 			self.request({
 				type: "get",
 				url: options.url,
+				async: true,
 				cache: false,
 				dataType: "json",
 				data:{ ids: ids.join(",")},
@@ -1635,6 +1816,7 @@ model("buddy", {
 			var self = this, options = self.options;
 			self.request({
 				type: "get",
+				async: true,
 				cache: false,
 				url: options.urls.member,
 				dataType: "json",
@@ -1653,6 +1835,7 @@ model("buddy", {
 			self.request({
 				cache: false,
 				type: "post",
+				async: true,
 				url: options.urls.join,
 				dataType: "json",
 				data: {
@@ -1707,7 +1890,7 @@ clear //type, id
 */
 
 model("history",{
-	urls:{load:"webim/history", clear:"webim/clear_history"}
+	urls:{ load:"webim/history", clear:"webim/clear_history", download: "webim/download_history" }
 }, {
 	_init:function(){
 		var self = this;
@@ -1771,6 +1954,23 @@ model("history",{
 			data:{ type: type, id: id}
 		});
 	},
+	download: function(type, id){
+		var self = this, 
+		options = self.options, 
+		url = options.urls.download,
+		now = (new Date()).getTime(), 
+		f = document.createElement('iframe'), 
+		d = new Date(),
+		ar = [],
+		data = {id: id, type: type, time: (new Date()).getTime(), date: d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate() };
+		for (var key in data ) {
+			ar[ ar.length ] = encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+		}
+		url += (/\?/.test( url ) ? "&" : "?") + ar.join("&");
+		f.setAttribute( "src", url );
+		f.style.display = 'none'; 
+		document.body.appendChild(f); 
+	},
 	init: function(type, id, data){
 		var self = this;
 		if(isArray(data)){
@@ -1783,6 +1983,7 @@ model("history",{
 		self.data[type][id] = [];
 		self.request({
 			url: options.urls.load,
+			async: true,
 			cache: false,
 			type: "get",
 			dataType: "json",
@@ -1802,8 +2003,8 @@ model("history",{
  * Copyright (c) 2010 Hidden
  * Released under the MIT, BSD, and GPL Licenses.
  *
- * Date: Tue Sep 14 14:33:13 2010 +0800
- * Commit: 5bceaad58907cfbe4228919e486f76d1d358857e
+ * Date: Fri Dec 24 16:32:20 2010 +0800
+ * Commit: ee5c2661578245f8e273838c2f97116f77f5935a
  */
 (function(window,document,undefined){
 
@@ -1821,6 +2022,7 @@ inArray = webim.inArray,
 grep = webim.grep,
 JSON = webim.JSON,
 ajax = webim.ajax,
+jsonp = webim.jsonp,
 comet = webim.comet,
 model = webim.model,
 objectExtend = webim.objectExtend,
@@ -2278,7 +2480,8 @@ function webimUI(element, options){
 extend(webimUI.prototype, objectExtend, {
 	render:function(){
 		var self = this, layout = self.layout;
-		self.element.appendChild(layout.element);
+		// Use insertBefore instead of appendChild  to circumvent an IE6 bug.
+		self.element.insertBefore( layout.element, self.element.firstChild );
 		setTimeout(function(){self.initSound()}, 1000);
 		layout.buildUI();
 	},
@@ -2463,8 +2666,10 @@ extend(webimUI.prototype, objectExtend, {
 			chat.bind("sendMsg", function(msg){
 				im.sendMsg(msg);
 				history.handle(msg);
+			}).bind("downloadHistory", function(info){
+				history.download("multicast", info.id);
 			}).bind("select", function(info){
-				buddy.online(info.id);//online
+				buddy.presence(info);//online
 				self.addChat("buddy", info.id, null, null, info.nick);
 				layout.focusChat("buddy", info.id);
 			}).bind("block", function(d){
@@ -2496,6 +2701,8 @@ extend(webimUI.prototype, objectExtend, {
 				im.sendStatus(msg);
 			}).bind("clearHistory", function(info){
 				history.clear("unicast", info.id);
+			}).bind("downloadHistory", function(info){
+				history.download("unicast", info.id);
 			});
 		}
 	},
@@ -3844,7 +4051,8 @@ widget("chat",{
 				return true;
 			}else{
 				var el = target(e), val = el.value;
-				if (trim(val)) {
+				// "0" will false
+				if (trim(val).length) {
 					self._sendMsg(val);
 					el.value = "";
 					preventDefault(e);
@@ -3984,6 +4192,29 @@ widget("chat",{
 	plugins: {}
 });
 
+/*
+webimUI.chat.defaults.fontcolor = true;
+plugin.add("chat","fontcolor",{
+	init:function(e, ui){
+		var chat = ui.self;
+		var fontcolor = new webimUI.fontcolor();
+		fontcolor.bind("select",function(alt){
+			chat.focus();
+			chat.setStyle("color", alt);
+		});
+		var trigger = createElement(tpl('<a href="#chat-fontcolor" title="<%=font color%>"><em class="webim-icon webim-icon-fontcolor"></em></a>'));
+		addEvent(trigger,"click",function(e){
+			preventDefault(e);
+			fontcolor.toggle();
+		});
+		ui.$.toolContent.appendChild(fontcolor.element);
+		ui.$.tools.appendChild(trigger);
+	},
+	send:function(e, ui){
+	}
+});
+*/
+
 webimUI.chat.defaults.emot = true;
 plugin.add("chat","emot",{
 	init:function(e, ui){
@@ -4005,6 +4236,7 @@ plugin.add("chat","emot",{
 	send:function(e, ui){
 	}
 });
+
 webimUI.chat.defaults.clearHistory = true;
 plugin.add("chat","clearHistory",{
 	init:function(e, ui){
@@ -4072,6 +4304,19 @@ plugin.add("chat","member",{
 		$.member = els.ul;
 		$.memberCount = els.memberCount;
 		$.content.parentNode.insertBefore(member, $.content);
+	}
+});
+
+webimUI.chat.defaults.downloadHistory = true;
+plugin.add("chat","downloadHistory",{
+	init:function(e, ui){
+		var chat = ui.self;
+		var trigger = createElement(tpl('<a style="float: right;" href="#chat-downloadHistory" title="<%=download history%>"><em class="webim-icon webim-icon-download"></em></a>'));
+		addEvent(trigger,"click",function(e){
+			preventDefault(e);
+			chat.trigger("downloadHistory",[chat.options.info]);
+		});
+		ui.$.tools.appendChild(trigger);
 	}
 });
 //
@@ -4315,6 +4560,87 @@ widget("user",{
 	}
 });
 
+/* 
+* ui.login:
+*
+*/
+app("login", {
+	init: function(options){
+		options = options || {};
+		var ui = this, im = ui.im;
+		var loginUI = ui.login = new webimUI.login(null, options);
+		options.container && options.container.appendChild( loginUI.element );
+		loginUI.bind( "login", function( params ){
+			im.online( params );
+		});
+	},
+	go: function() {
+		this.login.hide();
+	},
+	stop: function( type, msg ) {
+		//type == "online" && this.login.showError( msg );
+	}
+});
+
+widget("login", {
+	questions: null,
+	notice: "",
+	template: '<div>  \
+		<div id=":login" class="webim-login"> \
+			<div class="webim-login-notice" id=":notice"></div>\
+			<div class="ui-state-error webim-login-error ui-corner-all" style="display: none;" id=":error"></div>\
+			<form id=":form">\
+				<p class="ui-helper-clearfix"><label for=":username"><%=username%></label><input name="username" id=":username" type="text" /></p>\
+				<p class="ui-helper-clearfix"><label for=":password"><%=password%></label><input name="password" id=":password" type="password" /></p>\
+				<div id=":more">\
+				<p class="ui-helper-clearfix"><label for=":question"><%=question%></label><select name="question" id=":question" ></select></p>\
+				<p class="ui-helper-clearfix"><label for=":answer"><%=answer%></label><input name="answer" id=":answer" type="text" /></p>\
+				</div>\
+				<p class="ui-helper-clearfix"><input name="submit" id=":submit" class="ui-state-default ui-corner-all webim-login-submit" value="<%=login%>" type="submit" /></p>\
+			</form>\
+		</div>'
+},{
+	_init: function() {
+		var self = this, questions = self.options.questions, $ = self.$;
+		if ( questions && questions.length ) {
+			each( questions, function(n, v) {
+				var option = document.createElement( "option" );
+				option.value = v[0];
+				option.innerHTML = v[1];
+				$.question.appendChild( option );
+			} );
+		} else {
+			hide( $.more );
+		}
+		$.notice.innerHTML = self.options.notice;
+		
+	},
+	_initEvents: function() {
+		var self = this, $ = self.$;
+		hoverClass( $.submit, "ui-state-hover" );
+		addEvent( $.form, "submit", function( e ) {
+			self.trigger( "login", [{ username: $.username.value,  password: $.password.value, question: $.question.value, answer: $.answer.value }] );
+			preventDefault( e );
+		} );
+	},
+	hide: function() {
+		hide( this.element );
+	},
+	show: function() {
+		show( this.element );
+	},
+	hideError: function() {
+		hide( this.$.error );
+	},
+	showError: function( msg ) {
+		var er = this.$.error;
+		er.innerHTML = i18n( msg );
+		show( er );
+	},
+	destroy: function(){
+	}
+});
+
 //
 /* ui.buddy:
 *
@@ -4343,7 +4669,7 @@ app("buddy", {
 		var ui = this, im = ui.im, buddy = im.buddy, layout = ui.layout;
 		var buddyUI = ui.buddy = new webimUI.buddy(null, extend({
 			title: i18n("buddy")
-		}, options));
+		}, options ) );
 
 		layout.addWidget(buddyUI, extend({
 			title: i18n("buddy"),
@@ -4354,9 +4680,15 @@ app("buddy", {
 			isMinimize: !im.status.get("b"),
 			titleVisibleLength: 19
 		}, options.windowOptions));
-		if(!options.disable_user){
-			ui.addApp("user");
-			buddyUI.window.subHeader(ui.user.element);
+		if(!options.disable_user) {
+			ui.addApp( "user", options.userOptions );
+			if( options.is_login ) {
+				buddyUI.window.subHeader( ui.user.element );
+				ui.user._initElement = true;
+			}
+		}
+		if( !options.is_login && !options.disable_login ) {
+			ui.addApp("login", extend( { container: buddyUI.$.content }, options.loginOptions ) );
 		}
 		//buddy events
 		im.setting.bind("update",function(key, val){
@@ -4366,8 +4698,6 @@ app("buddy", {
 		buddyUI.bind("select", function(info){
 			ui.addChat("buddy", info.id);
 			ui.layout.focusChat("buddy", info.id);
-		}).bind("online",function(){
-			im.online();
 		});
 		buddyUI.window.bind("displayStateChange",function(type){
 			if(type != "minimize"){
@@ -4379,9 +4709,6 @@ app("buddy", {
 				buddy.option("active", false);
 			}
 		});
-		function count_buddy(){
-			return buddy.count({presence:"online"}) - buddy.count({presence:"online", show: "invisible"});
-		}
 
 		var mapId = function(a){ return isObject(a) ? a.id : a };
 		var grepVisible = function(a){ return a.show != "invisible" && a.presence == "online"};
@@ -4404,23 +4731,30 @@ app("buddy", {
 	},
 	ready: function(){
 		var ui = this, im = ui.im, buddy = im.buddy, buddyUI = ui.buddy;
+		hide( buddyUI.$.logo );
 		buddyUI.online();
 	},
 	go: function(){
 		var ui = this, im = ui.im, buddy = im.buddy, buddyUI = ui.buddy;
+		ui.user && !ui.user._initElement && buddyUI.window.subHeader(ui.user.element);
 		buddyUI.titleCount();
+		buddyUI.hideError();
 	},
-	stop: function(type){
+	stop: function(type, msg){
 		var ui = this, im = ui.im, buddy = im.buddy, buddyUI = ui.buddy;
 		buddyUI.offline();
-		type && buddyUI.notice(type);
+		if ( type == "online" || type == "connect" ) {
+			buddyUI.showError( msg );
+		}
 	}
 });
 
 widget("buddy",{
 	template: '<div id="webim-buddy" class="webim-buddy">\
 		<div id=":search" class="webim-buddy-search ui-state-default ui-corner-all"><em class="ui-icon ui-icon-search"></em><input id=":searchInput" type="text" value="" /></div>\
-			<div class="webim-buddy-content">\
+			<div class="webim-buddy-content" id=":content">\
+				<div id=":logo" class="webim-buddy-logo">&nbsp;</div>\
+				<div class="ui-state-error webim-login-error ui-corner-all" style="display: none;" id=":error"></div>\
 				<div id=":empty" class="webim-buddy-empty"><%=empty buddy%></div>\
 					<ul id=":ul"></ul>\
 						</div>\
@@ -4526,14 +4860,15 @@ self.trigger("offline");
 	online: function(){
 		var self = this, $ = self.$, win = self.window;
 		self.notice("connect");
-		show($.empty);
+		hide( $.empty );
 	},
 	offline: function(){
 		var self = this, $ = self.$, win = self.window;
-		self.notice("offline");
-		show($.empty);
 		self.scroll(false);
 		self.removeAll();
+		hide( $.empty );
+		show( $.logo );
+		self.notice("offline");
 	},
 	_updateInfo:function(el, info){
 		el = el.firstChild;
@@ -4643,6 +4978,14 @@ self.trigger("offline");
 		var self = this, el = self.li[id];
 		el && el.firstChild.click();
 		return el;
+	},
+	hideError: function() {
+		hide( this.$.error );
+	},
+	showError: function( msg ) {
+		var er = this.$.error;
+		er.innerHTML = i18n( msg );
+		show( er );
 	},
 	destroy: function(){
 	}
@@ -5100,6 +5443,13 @@ data
 model("notification",{
 	url: "webim/notifications"
 },{
+	_init: function(){
+		var self = this;
+		if(self.options.jsonp)
+			self.request = jsonp;
+		else
+			self.request = ajax;
+	},
 	grep: function(val, n){
 		return val && val.text;
 	},
@@ -5110,7 +5460,7 @@ model("notification",{
 	},
 	load: function(){
 		var self = this, options = self.options;
-		ajax({
+		self.request({
 			url: options.url,
 			cache: false,
 			dataType: "json",
@@ -5137,7 +5487,9 @@ app("notification", {
 	init: function(options){
 		var ui = this, im = ui.im, layout = ui.layout;
 		var notificationUI = ui.notification = new webimUI.notification(null, options);
-		var notification = im.notification = new webim.notification();
+		var notification = im.notification = new webim.notification(null, {
+			jsonp: im.options.jsonp
+		});
 		layout.addWidget(notificationUI, {
 			title: i18n("notification"),
 			icon: "notification",
