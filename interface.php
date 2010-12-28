@@ -62,7 +62,8 @@ $_IMC['dbcharset'] = $charset;
  *
  */
 
-$site_url = dirname( webim_urlpath() ) . "/";
+#$site_url = dirname( webim_urlpath() ) . "/";
+$site_url = "";
 
 if($GLOBALS['groupid'] == 'guest' || $GLOBALS['groupid'] == '') {
 	$im_is_login = false;
