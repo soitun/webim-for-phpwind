@@ -107,6 +107,7 @@ function webim_update_config( $save = true ) {
 		$markup = "<?php\n\$_IMC = ".var_export($new, true).";\n";
 		file_put_contents( $im_config_file, $markup );
 	}
+	$_IMC = $new;
 }
 
 function webim_clean_cache(){

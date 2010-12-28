@@ -9,7 +9,7 @@ $unwritable_paths = webim_select_unwritable_path( true );
 $msg = "";
 $success = false;
 
-if ( !empty($unwritable_paths ) ){
+if ( !empty( $unwritable_paths ) ){
 
 	$msg = webim_unwritable_log( $unwritable_paths );
 	include_once( '_error.php' );
